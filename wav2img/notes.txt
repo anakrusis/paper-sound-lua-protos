@@ -1,0 +1,24 @@
+Ideas for format
+6/15/2019------
+
+5000Hz sample rate?
+8 bit unsigned PCM
+
+6/19/2019------
+
+8000hz
+8 bit unsigned
+songlength written on the card?
+
+6/20/2019------
+
+The time is now to experiment with bigger sample rates!
+16khz might lead to 1. better quality audio, and 2. less noise (its like having a backup doubled up from 8khz)
+
+for the future: redundant data? maybe two half-pages which are averaged together to reduce noise
+
+NOISE REDUCTION is really important if this format is to be used for anything practical.
+But it is an inherent part of the printing process as well, and must be worked around.
+
+Quantization of gray shades?
+auto calibrate with marks?
