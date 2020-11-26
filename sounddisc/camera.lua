@@ -57,7 +57,8 @@ function love.wheelmoved( x, y )
 
 	u:wheelmoved(x, y)
 
-	cam_zoom = cam_zoom + (y/3);
+	-- this is loaned from Space Game mouse code (wow it still works wow)
+	cam_zoom = cam_zoom + (cam_zoom / 25) * y * 5;
 	
 end
 
