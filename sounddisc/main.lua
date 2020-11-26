@@ -24,7 +24,7 @@ SAMPLES_PER_TICK = math.floor(SAMPLE_RATE / 60)
 BITS_PER_SAMPLE = 8
 
 function love.load()
-	love.window.setTitle( "sound-disc" )
+	love.window.setTitle( "sound-disc 0.1" )
 	success = love.window.setMode( 800, 600, {resizable=true} )
 	
 	recordLoaded = false
@@ -86,10 +86,8 @@ function love.load()
 	
 		if SAMPLE_RATE == 48000 then
 			SAMPLE_RATE = 44100
-			samplerate_button.text = "Sample rate: 44.1khz"
 		else
 			SAMPLE_RATE = 48000
-			samplerate_button.text = "Sample rate: 48khz"
 		end
 		
 		SAMPLES_COUNT = SAMPLE_RATE * 60
@@ -131,6 +129,9 @@ function love.update(dt)
 	play_button.x = -(play_button.w/2) + love.graphics.getWidth() / 2
 	samplerate_button.x = love.graphics.getWidth() - 170
 	samplerate_label.x  = love.graphics.getWidth() - 170
+	
+	-- Buttons whose text dynamically updates
+	samplerate_button.text = "Sample rate: " .. (SAMPLE_RATE/1000) .. "khz"
 	
 	u:update(dt)
 
@@ -214,8 +215,14 @@ function loadRecord()
 		currentAngle  = 0
 		-- 0x2C (+1 because lua) is the beginning of audio data in a typical WAV
 		for i = 0x2d, SAMPLES_COUNT * SAMPLE_DIVISOR, SAMPLE_DIVISOR do
+		
+			-- TODO handle more than just 8-bit wav (byte = sample)
+			-- 32 bit float would be good, maybe also 16 bit
+			
+			-- this can all be done here below
+		
 			val = string.byte(string.sub(song,i,i))
-			--print(val)
+			
 			
 			currentX = CENTER_X + (currentRadius * math.cos(currentAngle))
 			currentY = CENTER_Y + (currentRadius * math.sin(currentAngle))
@@ -233,7 +240,7 @@ function loadRecord()
 		
 		renderimg = love.graphics.newImage(renderdata)
 		recordLoaded = true
-	
+		file:close()
 	else
 		
 		print("File not found!")
@@ -306,6 +313,7 @@ function loadImage()
 		recordLoaded = true
 	
 	end
+	file:close()
 end
 
 function saveImage()
