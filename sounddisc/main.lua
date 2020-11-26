@@ -2,6 +2,27 @@ urutora = require 'urutora'
 u = urutora:new()
 require "camera"
 
+-- CONSTANTS
+
+STRIP_BREADTH = 3
+
+RENDER_H = 2048
+RENDER_W = 2048
+
+CENTER_X = RENDER_W/2
+CENTER_Y = RENDER_H/2
+-- in pixels
+RADIUS_START = 1000
+RADIUS_END   = 300
+SAMPLES_PER_REVOLUTION = RADIUS_START * 4.5 * math.pi
+
+-- NOT SO CONSTANTS (they get overwritten but these are default values)
+
+SAMPLE_RATE = 48000
+SAMPLES_COUNT = SAMPLE_RATE * 60
+SAMPLES_PER_TICK = math.floor(SAMPLE_RATE / 60)
+BITS_PER_SAMPLE = 8
+
 function love.load()
 	love.window.setTitle( "sound-disc" )
 	success = love.window.setMode( 800, 600, {resizable=true} )
@@ -13,8 +34,14 @@ function love.load()
 	playingRadius = 0
 	playingAngle  = 0
 	
-	wav_label = urutora.label({ text = "(.wav path below)", x = 150, y = 20, w = 150, h = 50})
+	samplerate_label = urutora.label({ text = "(If it sounds broken or skippy\nthen try other sample rate)", x = 175, y = 50, w = 100, h = 50})
+	u:add(samplerate_label)
+	
+	wav_label = urutora.label({ text = "(.wav in directory with\nprogram, path below)", x = 175, y = 10, w = 100, h = 50})
 	u:add(wav_label)
+	
+	png_label = urutora.label({ text = "(.png in directory with\nprogram, path below)", x = 175, y = 170, w = 100, h = 50})
+	u:add(png_label)
 	
 	wav_import = urutora.text({ text = "", x = 20, y = 75, w = 300, h = 30 })
 	u:add(wav_import)
@@ -27,6 +54,14 @@ function love.load()
 	end)
 	u:add(import_button)
 	
+	import_button = urutora.button({ text = "Export .png", x = 10, y = 110, w = 125, h = 50 })
+	import_button:action(function(e)
+	
+		saveImage()
+		
+	end)
+	u:add(import_button)
+	
 	play_button = urutora.button({ text = "Play", x = love.graphics.getWidth() / 2, y = 20, w = 50, h = 50 })
 	play_button:action(function(e)
 	
@@ -34,6 +69,34 @@ function love.load()
 		
 	end)
 	u:add(play_button)
+	
+	importimg_button = urutora.button({ text = "Import .png", x = 10, y = 175, w = 125, h = 50 })
+	importimg_button:action(function(e)
+	
+		loadImage()
+		
+	end)
+	u:add(importimg_button)
+	
+	img_import = urutora.text({ text = "", x = 20, y = 225, w = 300, h = 30 })
+	u:add(img_import)
+	
+	samplerate_button = urutora.button({ text = "Sample rate: 48khz", x = 500, y = 20, w = 160, h = 35 })
+	samplerate_button:action(function(e)
+	
+		if SAMPLE_RATE == 48000 then
+			SAMPLE_RATE = 44100
+			samplerate_button.text = "Sample rate: 44.1khz"
+		else
+			SAMPLE_RATE = 48000
+			samplerate_button.text = "Sample rate: 48khz"
+		end
+		
+		SAMPLES_COUNT = SAMPLE_RATE * 60
+		SAMPLES_PER_TICK = math.floor(SAMPLE_RATE / 60)
+		
+	end)
+	u:add(samplerate_button)
 	
 end
 
@@ -48,9 +111,7 @@ function love.keypressed(key, scancode, isrepeat)
 	u:keypressed(key, scancode, isrepeat)
 
 	if key == "u" then
-		if renderdata ~= nil then
-			renderdata:encode("png","test.png")
-		end
+
 	end	
 	
 	if key == "r" then
@@ -66,7 +127,10 @@ end
 
 function love.update(dt)
 
+	-- Buttons whose positions change when the screen resizes
 	play_button.x = -(play_button.w/2) + love.graphics.getWidth() / 2
+	samplerate_button.x = love.graphics.getWidth() - 170
+	samplerate_label.x  = love.graphics.getWidth() - 170
 	
 	u:update(dt)
 
@@ -124,18 +188,7 @@ function loadRecord()
 	if file ~= nil then
 		song = file:read("*all")
 
-		STRIP_BREADTH = 3
-	
-		RENDER_H = 2048
-		RENDER_W = 2048
-		
-		CENTER_X = RENDER_W/2
-		CENTER_Y = RENDER_H/2
 		renderdata = love.image.newImageData(RENDER_W, RENDER_H)
-		
-		-- in pixels
-		RADIUS_START = 1000
-		RADIUS_END   = 300
 	
 		SAMPLE_RATE = string.byte(string.sub(song,0x19,0x19)) + (0x100 * string.byte(string.sub(song,0x1a,0x1a)))
 		print("Original Sample Rate: " .. SAMPLE_RATE)
@@ -175,6 +228,8 @@ function loadRecord()
 				drawLine(currentX, currentY, currentAngle, STRIP_BREADTH, val/255)
 			end
 		end
+		
+		--renderdata = love.image.newImageData( "ronaldinho.jpg" )
 		
 		renderimg = love.graphics.newImage(renderdata)
 		recordLoaded = true
@@ -232,5 +287,38 @@ function playRecord()
 			love.audio.stop( source )
 			play_button.text = "Play"
 		end
+	end
+end
+
+function loadImage()
+
+	filename = img_import.text
+	file = io.open(filename,"rb")
+	--
+	if file ~= nil and string.sub(filename, -3) == "png" then
+	
+		imgdata = file:read("*all")
+		
+		filedata = love.filesystem.newFileData( imgdata, filename )
+		renderdata = love.image.newImageData( filedata )
+		renderimg = love.graphics.newImage(renderdata)
+		
+		recordLoaded = true
+	
+	end
+end
+
+function saveImage()
+	if renderdata ~= nil then
+		filenameout = string.sub(filename, 0, #filename-4) .. ".png"
+		
+		dataOut = renderdata:encode("png")
+		str_out = dataOut:getString()
+		
+		file = io.open (filenameout, "wb")
+		file:write(str_out)
+		file:close()
+		
+		--renderdata:encode("png",  )
 	end
 end
