@@ -1,13 +1,10 @@
+urutora = require 'urutora'
+u = urutora:new()
 require "camera"
 
 function love.load()
 	love.window.setTitle( "sound-disc" )
 	success = love.window.setMode( 800, 600, {resizable=true} )
-
-	filename = "squidward goes to therapy.wav"
-
-	file = io.open(filename,"rb")
-	song = file:read("*all")
 	
 	recordLoaded = false
 	
@@ -16,55 +13,96 @@ function love.load()
 	playingRadius = 0
 	playingAngle  = 0
 	
+	input = urutora.text({ text = "", x = 20, y = 20, w = 150, h = 50 })
+
+	u:add(input)
+	
 end
 
-function love.keypressed(key)
-	if key == "r" then
-	
-		RENDER_H = 2048
-		RENDER_W = 2048
-		
-		CENTER_X = RENDER_W/2
-		CENTER_Y = RENDER_H/2
-		renderdata = love.image.newImageData(RENDER_W, RENDER_H)
-		
-		-- in pixels
-		RADIUS_START = 1000
-		RADIUS_END   = 100
-	
-		SAMPLE_RATE = string.byte(string.sub(song,0x19,0x19)) + (0x100 * string.byte(string.sub(song,0x1a,0x1a)))
-		print("Sample Rate: " .. SAMPLE_RATE)
-		BITS_PER_SAMPLE = string.byte(string.sub(song,0x23,0x23))
-		print(BITS_PER_SAMPLE .. "-bit")
-		
-		SAMPLE_DIVISOR = 1 -- for reducing sample rate
-		
-		LENGTH_IN_SECONDS = 20
-		SAMPLES_COUNT = ( SAMPLE_RATE / SAMPLE_DIVISOR ) * LENGTH_IN_SECONDS 
-		
-		SAMPLES_PER_REVOLUTION = RADIUS_START * 4.5 * math.pi 
-		SAMPLES_PER_TICK = math.floor(SAMPLE_RATE / 60)
-		
-		currentRadius = RADIUS_START
-		currentAngle  = 0
-		-- 0x2C (+1 because lua) is the beginning of audio data in a typical WAV
-		for i = 0x2d, SAMPLES_COUNT do
-			val = string.byte(string.sub(song,i,i))
-			--print(val)
-			
-			currentX = CENTER_X + (currentRadius * math.cos(currentAngle))
-			currentY = CENTER_Y + (currentRadius * math.sin(currentAngle))
-			
-			currentAngle = currentAngle + (( 2 * math.pi ) / SAMPLES_PER_REVOLUTION)
-			currentRadius = currentRadius - (( RADIUS_START - RADIUS_END ) / SAMPLES_COUNT )
-			
-			--print(currentX .. " " .. currentY)
-			
-			drawLine(currentX, currentY, currentAngle, 20, val/255)
+function love.mousepressed(x, y, button) u:pressed(x, y) end
+
+function love.mousereleased(x, y, button) u:released(x, y) end
+
+function love.textinput(text) u:textinput(text) end
+
+function love.keypressed(key, scancode, isrepeat)
+
+	u:keypressed(key, scancode, isrepeat)
+
+	if key == "u" then
+		if renderdata ~= nil then
+			renderdata:encode("png","test.png")
 		end
+	end	
+	
+	if key == "r" then
+
+		filename = input.text
+		file = io.open(filename,"rb")
 		
-		renderimg = love.graphics.newImage(renderdata)
-		recordLoaded = true
+		if file ~= nil then
+			song = file:read("*all")
+
+			STRIP_BREADTH = 5
+		
+			RENDER_H = 2048
+			RENDER_W = 2048
+			
+			CENTER_X = RENDER_W/2
+			CENTER_Y = RENDER_H/2
+			renderdata = love.image.newImageData(RENDER_W, RENDER_H)
+			
+			-- in pixels
+			RADIUS_START = 1000
+			RADIUS_END   = 500
+		
+			SAMPLE_RATE = string.byte(string.sub(song,0x19,0x19)) + (0x100 * string.byte(string.sub(song,0x1a,0x1a)))
+			print("Original Sample Rate: " .. SAMPLE_RATE)
+			BITS_PER_SAMPLE = string.byte(string.sub(song,0x23,0x23))
+			print(BITS_PER_SAMPLE .. "-bit")
+			
+			SAMPLE_DIVISOR = 1 -- for reducing sample rate
+			SAMPLE_RATE = SAMPLE_RATE / SAMPLE_DIVISOR
+			print("Sample Rate / " .. SAMPLE_DIVISOR .. " = " .. SAMPLE_RATE)
+			
+			LENGTH_IN_SECONDS = 60
+			SAMPLES_COUNT = ( SAMPLE_RATE ) * LENGTH_IN_SECONDS 
+			
+			SAMPLES_PER_REVOLUTION = RADIUS_START * 4.5 * math.pi
+			
+			REVOLUTIONS_PER_SAMPLE = 1/SAMPLES_PER_REVOLUTION
+			REVOLUTIONS_PER_MINUTE = REVOLUTIONS_PER_SAMPLE * SAMPLE_RATE * 60
+			print(REVOLUTIONS_PER_MINUTE .. "RPM")
+				
+			SAMPLES_PER_TICK = math.floor(SAMPLE_RATE / 60)
+			
+			currentRadius = RADIUS_START
+			currentAngle  = 0
+			-- 0x2C (+1 because lua) is the beginning of audio data in a typical WAV
+			for i = 0x2d, SAMPLES_COUNT * SAMPLE_DIVISOR, SAMPLE_DIVISOR do
+				val = string.byte(string.sub(song,i,i))
+				--print(val)
+				
+				currentX = CENTER_X + (currentRadius * math.cos(currentAngle))
+				currentY = CENTER_Y + (currentRadius * math.sin(currentAngle))
+				
+				currentAngle = currentAngle + (( 2 * math.pi ) / SAMPLES_PER_REVOLUTION)
+				currentRadius = currentRadius - (( RADIUS_START - RADIUS_END ) / SAMPLES_COUNT )
+				
+				--print(currentX .. " " .. currentY)
+				
+				drawLine(currentX, currentY, currentAngle, STRIP_BREADTH, val/255)
+			end
+			
+			renderimg = love.graphics.newImage(renderdata)
+			recordLoaded = true
+		
+		else
+			
+			print("File not found!")
+			
+		end
+
 	end
 	
 	if key == "space" and recordLoaded then
@@ -84,6 +122,7 @@ function love.keypressed(key)
 			
 				r,g,b,a = renderdata:getPixel(playheadX, playheadY)
 				playingVal = (r+g+b)/3
+				playingVal = (playingVal * 2) - 1
 				
 				soundData:setSample(i - 1, playingVal)
 			
@@ -109,6 +148,9 @@ function love.keypressed(key)
 end
 
 function love.update(dt)
+	
+	u:update(dt)
+
 	if playing then
 		
 		for i = 1, SAMPLES_PER_TICK do 
@@ -130,6 +172,7 @@ function love.update(dt)
 end
 
 function love.draw()
+
 	if renderimg ~= nil then
 	
 		love.graphics.draw( renderimg, tra_x(0), tra_y(0), 0, cam_zoom, cam_zoom );
@@ -137,8 +180,10 @@ function love.draw()
 	
 	if playing then
 
-		love.graphics.circle("fill", tra_x(playheadX), tra_y(playheadY), cam_zoom * 5)
+		love.graphics.circle("fill", tra_x(playheadX), tra_y(playheadY), cam_zoom * 10)
 	end
+	
+	u:draw()
 end
 
 function drawLine(x, y, angle, breadth, val)

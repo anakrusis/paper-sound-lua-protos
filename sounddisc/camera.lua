@@ -55,11 +55,15 @@ end
 
 function love.wheelmoved( x, y )
 
+	u:wheelmoved(x, y)
+
 	cam_zoom = cam_zoom + (y/3);
 	
 end
 
 function love.mousemoved( x, y, dx, dy, istouch )
+
+	u:moved(x, y, dx, dy)
 
 	if love.mouse.isDown( 3 ) then
 	
