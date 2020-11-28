@@ -32,7 +32,7 @@ function love.load()
 	success = love.window.setMode( 800, 600, {resizable=true} )
 	love.keyboard.setKeyRepeat(true)
 	
-	font = love.graphics.setNewFont("FiraMono-Bold.ttf", 24)
+	font = love.graphics.setNewFont("FiraMono-Bold.ttf", 20)
 	
 	recordLoaded = false
 	
@@ -329,7 +329,7 @@ function loadImage()
 	filename = img_import.text
 	file = io.open(filename,"rb")
 	--
-	if file ~= nil and (string.sub(filename, -3) == "png" or string.sub(filename, -3) == "jpg") then
+	if file ~= nil and (string.sub(filename, -3) == "png" or string.sub(filename, -3) == "jpg" or string.sub(filename, -3) == "bmp" or string.sub(filename, -3) == "gif") then
 	
 		imgdata = file:read("*all")
 		

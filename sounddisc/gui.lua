@@ -8,7 +8,7 @@ function initGui()
 	wav_label = urutora.label({ text = "(.wav in directory with\nprogram, path below)", x = 175, y = 10, w = 100, h = 50})
 	u:add(wav_label)
 	
-	png_label = urutora.label({ text = "(.png in directory with\nprogram, path below)", x = 175, y = 170, w = 100, h = 50})
+	png_label = urutora.label({ text = "(image in directory with\nprogram, path below)", x = 175, y = 170, w = 100, h = 50})
 	u:add(png_label)
 	
 	wav_import = urutora.text({ text = "", x = 20, y = 75, w = 300, h = 30 })
@@ -38,7 +38,7 @@ function initGui()
 	end)
 	u:add(play_button)
 	
-	importimg_button = urutora.button({ text = "Import .png", x = 10, y = 175, w = 125, h = 50 })
+	importimg_button = urutora.button({ text = "Import image", x = 10, y = 175, w = 125, h = 50 })
 	importimg_button:action(function(e)
 	
 		loadImage()
