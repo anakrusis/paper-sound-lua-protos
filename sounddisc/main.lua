@@ -2,6 +2,7 @@ urutora = require 'urutora'
 u = urutora:new()
 require "camera"
 require "gui"
+bitty = require "bitty"
 
 -- CONSTANTS
 
@@ -42,6 +43,9 @@ function love.load()
 	playingAngle  = 0
 	
 	initGui()
+	
+	--newpart = 65534
+	--print(((-1 - newpart) % 2^16)+1)
 end
 
 function love.mousepressed(x, y, button) u:pressed(x, y) end
@@ -130,6 +134,42 @@ function drawLine(x, y, angle, breadth, val)
 	
 end
 
+function getSample(i)
+	sample = 0
+	for q = 0, CHANNELS-1 do
+		if BITS_PER_SAMPLE == 8 then
+			if string.byte(string.sub(song,q+i,q+i)) ~= nil then
+				newpart = string.byte(string.sub(song,q+i,q+i))
+			else
+				newpart = 0
+			end
+			sample = sample + newpart
+					
+		elseif BITS_PER_SAMPLE == 16 then
+			if string.byte(string.sub(song,(q*2)+i,(q*2)+i)) ~= nil and string.byte(string.sub(song,(q*2)+i+1,(q*2)+i+1)) ~= nil then
+			
+				newpartLow  = string.byte(string.sub(song,(q*2)+i+0,(q*2)+i+0))
+				newpartHigh = string.byte(string.sub(song,(q*2)+i+1,(q*2)+i+1))
+				
+				newpart = (newpartLow) + (256 * newpartHigh)
+				--print(newpart)
+				
+				if newpart > 32767 then
+					newpart = 0-(((-1 - newpart) % 2^16)+1)
+				end
+				
+				newpart = (newpart / 0x100 ) + 128
+			else
+				newpart = 0
+			end
+			sample = sample + newpart
+		end
+	end
+	sample = sample / CHANNELS
+	
+	return sample
+end
+
 function loadRecord()
 	filename = wav_import.text
 	file = io.open(filename,"rb")
@@ -149,7 +189,10 @@ function loadRecord()
 		print("Sample Rate / " .. SAMPLE_DIVISOR .. " = " .. SAMPLE_RATE)
 		
 		LENGTH_IN_SECONDS = 60
-		SAMPLES_COUNT = ( SAMPLE_RATE ) * LENGTH_IN_SECONDS 
+		SAMPLES_COUNT = ( SAMPLE_RATE ) * LENGTH_IN_SECONDS
+		
+		CHANNELS = string.byte(string.sub(song,23,23)) + (0x100 * string.byte(string.sub(song,24,24)))
+		if (CHANNELS == 1) then print("Mono") elseif (CHANNELS == 2) then print ("Stereo") end
 		
 		--SAMPLES_PER_REVOLUTION = RADIUS_START * 4.5 * math.pi
 		
@@ -165,18 +208,21 @@ function loadRecord()
 		currentRadius = RADIUS_START
 		currentAngle  = 0
 		
-		StepAmt = SAMPLE_DIVISOR
+		-- Determining how many bytes to step the step-amount for each sample!
+		
+		StepAmt = SAMPLE_DIVISOR * CHANNELS -- the base amount being just the simple divider
+		if BITS_PER_SAMPLE == 16 then
+			StepAmt = StepAmt * 2
+		end
 		
 		-- 0x2C (+1 because lua) is the beginning of audio data in a typical WAV
-		for i = 0x2d, SAMPLES_COUNT * SAMPLE_DIVISOR, StepAmt do
+		for i = 0x2d, SAMPLES_COUNT * StepAmt, StepAmt do
 		
 			-- TODO handle more than just 8-bit wav (byte = sample)
 			-- 32 bit float would be good, maybe also 16 bit
 			
 			-- this can all be done here below
-		
-			val = string.byte(string.sub(song,i,i))
-			
+			val = getSample(i)
 			
 			currentX = CENTER_X + (currentRadius * math.cos(currentAngle))
 			currentY = CENTER_Y + (currentRadius * math.sin(currentAngle))
@@ -284,7 +330,7 @@ function loadImage()
 	filename = img_import.text
 	file = io.open(filename,"rb")
 	--
-	if file ~= nil and string.sub(filename, -3) == "png" then
+	if file ~= nil and (string.sub(filename, -3) == "png" or string.sub(filename, -3) == "jpg") then
 	
 		imgdata = file:read("*all")
 		
@@ -293,9 +339,9 @@ function loadImage()
 		renderimg = love.graphics.newImage(renderdata)
 		
 		recordLoaded = true
-	
+		file:close()
 	end
-	file:close()
+	
 end
 
 function saveImage()

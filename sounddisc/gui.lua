@@ -52,16 +52,18 @@ function initGui()
 	samplerate_button = urutora.button({ text = "Sample rate: 48khz", x = 500, y = 20, w = 160, h = 35 })
 	samplerate_button:action(function(e)
 	
-		if SAMPLE_RATE == 48000 then
-			SAMPLE_RATE = 44100
-		else
-			SAMPLE_RATE = 48000
+		if not playing then -- changing sample rate mid play wont work anyways. dont try it
+			if SAMPLE_RATE == 48000 then
+				SAMPLE_RATE = 44100
+			else
+				SAMPLE_RATE = 48000
+			end
+			
+			SAMPLES_COUNT = SAMPLE_RATE * 60
+			SAMPLES_PER_TICK = math.floor(SAMPLE_RATE / 60)
+			REVOLUTIONS_PER_SAMPLE = REVOLUTIONS_PER_MINUTE / 60 / SAMPLE_RATE
+			SAMPLES_PER_REVOLUTION = 1 / REVOLUTIONS_PER_SAMPLE
 		end
-		
-		SAMPLES_COUNT = SAMPLE_RATE * 60
-		SAMPLES_PER_TICK = math.floor(SAMPLE_RATE / 60)
-		REVOLUTIONS_PER_SAMPLE = REVOLUTIONS_PER_MINUTE / 60 / SAMPLE_RATE
-		SAMPLES_PER_REVOLUTION = 1 / REVOLUTIONS_PER_SAMPLE
 		
 	end)
 	u:add(samplerate_button)
