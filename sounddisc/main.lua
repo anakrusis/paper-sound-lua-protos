@@ -2,7 +2,6 @@ urutora = require 'urutora'
 u = urutora:new()
 require "camera"
 require "gui"
-bitty = require "bitty"
 
 -- CONSTANTS
 
