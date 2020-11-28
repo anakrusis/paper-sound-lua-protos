@@ -15,8 +15,8 @@ CENTER_Y = RENDER_H/2
 -- in pixels
 RADIUS_START = 1000
 RADIUS_END   = 300
-SAMPLES_PER_REVOLUTION = RADIUS_START * 4.5 * math.pi
 REVOLUTIONS_PER_MINUTE = 190
+
 
 -- NOT SO CONSTANTS (they get overwritten but these are default values)
 
@@ -24,6 +24,8 @@ SAMPLE_RATE = 48000
 SAMPLES_COUNT = SAMPLE_RATE * 60
 SAMPLES_PER_TICK = math.floor(SAMPLE_RATE / 60)
 BITS_PER_SAMPLE = 8
+REVOLUTIONS_PER_SAMPLE = REVOLUTIONS_PER_MINUTE / 60 / SAMPLE_RATE
+SAMPLES_PER_REVOLUTION = 1 / REVOLUTIONS_PER_SAMPLE
 
 function love.load()
 	love.window.setTitle( "sound-disc 0.1" )
@@ -246,6 +248,11 @@ function playRecord()
 			
 				r,g,b,a = renderdata:getPixel(playheadX, playheadY)
 				playingVal = (r+g+b)/3
+				
+				if love.math.random() < 0.0001 then
+					playingVal = playingVal + (love.math.random() / 2.5)
+				end
+				
 				playingVal = (playingVal * 2) - 1
 				
 				soundData:setSample(i - 1, playingVal)
