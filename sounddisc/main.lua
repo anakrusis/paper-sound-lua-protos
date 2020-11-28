@@ -1,6 +1,7 @@
 urutora = require 'urutora'
 u = urutora:new()
 require "camera"
+require "gui"
 
 -- CONSTANTS
 
@@ -15,6 +16,7 @@ CENTER_Y = RENDER_H/2
 RADIUS_START = 1000
 RADIUS_END   = 300
 SAMPLES_PER_REVOLUTION = RADIUS_START * 4.5 * math.pi
+REVOLUTIONS_PER_MINUTE = 190
 
 -- NOT SO CONSTANTS (they get overwritten but these are default values)
 
@@ -26,6 +28,9 @@ BITS_PER_SAMPLE = 8
 function love.load()
 	love.window.setTitle( "sound-disc 0.1" )
 	success = love.window.setMode( 800, 600, {resizable=true} )
+	love.keyboard.setKeyRepeat(true)
+	
+	font = love.graphics.setNewFont("FiraMono-Bold.ttf", 24)
 	
 	recordLoaded = false
 	
@@ -34,68 +39,7 @@ function love.load()
 	playingRadius = 0
 	playingAngle  = 0
 	
-	samplerate_label = urutora.label({ text = "(If it sounds broken or skippy\nthen try other sample rate)", x = 175, y = 50, w = 100, h = 50})
-	u:add(samplerate_label)
-	
-	wav_label = urutora.label({ text = "(.wav in directory with\nprogram, path below)", x = 175, y = 10, w = 100, h = 50})
-	u:add(wav_label)
-	
-	png_label = urutora.label({ text = "(.png in directory with\nprogram, path below)", x = 175, y = 170, w = 100, h = 50})
-	u:add(png_label)
-	
-	wav_import = urutora.text({ text = "", x = 20, y = 75, w = 300, h = 30 })
-	u:add(wav_import)
-	
-	import_button = urutora.button({ text = "Import .wav", x = 10, y = 20, w = 125, h = 50 })
-	import_button:action(function(e)
-	
-		loadRecord()
-		
-	end)
-	u:add(import_button)
-	
-	import_button = urutora.button({ text = "Export .png", x = 10, y = 110, w = 125, h = 50 })
-	import_button:action(function(e)
-	
-		saveImage()
-		
-	end)
-	u:add(import_button)
-	
-	play_button = urutora.button({ text = "Play", x = love.graphics.getWidth() / 2, y = 20, w = 50, h = 50 })
-	play_button:action(function(e)
-	
-		playRecord()
-		
-	end)
-	u:add(play_button)
-	
-	importimg_button = urutora.button({ text = "Import .png", x = 10, y = 175, w = 125, h = 50 })
-	importimg_button:action(function(e)
-	
-		loadImage()
-		
-	end)
-	u:add(importimg_button)
-	
-	img_import = urutora.text({ text = "", x = 20, y = 225, w = 300, h = 30 })
-	u:add(img_import)
-	
-	samplerate_button = urutora.button({ text = "Sample rate: 48khz", x = 500, y = 20, w = 160, h = 35 })
-	samplerate_button:action(function(e)
-	
-		if SAMPLE_RATE == 48000 then
-			SAMPLE_RATE = 44100
-		else
-			SAMPLE_RATE = 48000
-		end
-		
-		SAMPLES_COUNT = SAMPLE_RATE * 60
-		SAMPLES_PER_TICK = math.floor(SAMPLE_RATE / 60)
-		
-	end)
-	u:add(samplerate_button)
-	
+	initGui()
 end
 
 function love.mousepressed(x, y, button) u:pressed(x, y) end
@@ -143,6 +87,8 @@ function love.update(dt)
 			
 			playingAngle = playingAngle + (( 2 * math.pi ) / SAMPLES_PER_REVOLUTION)
 			playingRadius = playingRadius - (( RADIUS_START - RADIUS_END ) / SAMPLES_COUNT )
+			--playingRadius = playingRadius - (( RADIUS_START - RADIUS_END ) / ( REVOLUTIONS / REVOLUTIONS_PER_SAMPLE ))
+			
 			playingSample = playingSample + 1
 			
 			if playingSample > SAMPLES_COUNT then
@@ -203,18 +149,24 @@ function loadRecord()
 		LENGTH_IN_SECONDS = 60
 		SAMPLES_COUNT = ( SAMPLE_RATE ) * LENGTH_IN_SECONDS 
 		
-		SAMPLES_PER_REVOLUTION = RADIUS_START * 4.5 * math.pi
+		--SAMPLES_PER_REVOLUTION = RADIUS_START * 4.5 * math.pi
 		
-		REVOLUTIONS_PER_SAMPLE = 1/SAMPLES_PER_REVOLUTION
-		REVOLUTIONS_PER_MINUTE = REVOLUTIONS_PER_SAMPLE * SAMPLE_RATE * 60
+		--REVOLUTIONS_PER_SAMPLE = 1/SAMPLES_PER_REVOLUTION
+		--REVOLUTIONS_PER_MINUTE = REVOLUTIONS_PER_SAMPLE * SAMPLE_RATE * 60
+
 		print(REVOLUTIONS_PER_MINUTE .. "RPM")
+		REVOLUTIONS_PER_SAMPLE = REVOLUTIONS_PER_MINUTE / 60 / SAMPLE_RATE
+		SAMPLES_PER_REVOLUTION = 1 / REVOLUTIONS_PER_SAMPLE
 			
 		SAMPLES_PER_TICK = math.floor(SAMPLE_RATE / 60)
 		
 		currentRadius = RADIUS_START
 		currentAngle  = 0
+		
+		StepAmt = SAMPLE_DIVISOR
+		
 		-- 0x2C (+1 because lua) is the beginning of audio data in a typical WAV
-		for i = 0x2d, SAMPLES_COUNT * SAMPLE_DIVISOR, SAMPLE_DIVISOR do
+		for i = 0x2d, SAMPLES_COUNT * SAMPLE_DIVISOR, StepAmt do
 		
 			-- TODO handle more than just 8-bit wav (byte = sample)
 			-- 32 bit float would be good, maybe also 16 bit
@@ -228,7 +180,7 @@ function loadRecord()
 			currentY = CENTER_Y + (currentRadius * math.sin(currentAngle))
 			
 			currentAngle = currentAngle + (( 2 * math.pi ) / SAMPLES_PER_REVOLUTION)
-			currentRadius = currentRadius - (( RADIUS_START - RADIUS_END ) / SAMPLES_COUNT )
+			currentRadius = currentRadius - (( RADIUS_START - RADIUS_END ) / ( SAMPLES_COUNT ))
 			
 			--print(currentX .. " " .. currentY)
 			if val ~= nil then
@@ -236,7 +188,30 @@ function loadRecord()
 			end
 		end
 		
-		--renderdata = love.image.newImageData( "ronaldinho.jpg" )
+		-- The sound data is finished drawing! now it is time to put the center stamp on it
+		
+		centerpiece = love.image.newImageData( "centerpiece.png" )
+		centerpiece_img = love.graphics.newImage(centerpiece)
+		
+		canvas = love.graphics.newCanvas( centerpiece:getWidth(), centerpiece:getHeight() )
+		
+		love.graphics.setCanvas(canvas)
+		love.graphics.draw(centerpiece_img)
+		
+		-- going above and below the centerpoint respectively
+		string1 = filename .. "\n" .. os.date("%b %d %Y") 
+		string2 = SAMPLE_RATE .. "hz" .. "\n" .. REVOLUTIONS_PER_MINUTE .. "RPM"
+		string1Width = font:getWidth(string1)
+		string2Width = font:getWidth(string2)
+		
+		love.graphics.setFont(font)		
+		love.graphics.print(string1, centerpiece:getWidth()/2 - string1Width/2, 96)
+		love.graphics.print(string2, centerpiece:getWidth()/2 - string2Width/2, 240)
+		
+		love.graphics.setCanvas()
+		
+		canvas_data = canvas:newImageData()
+		renderdata:paste(canvas_data, CENTER_X - (canvas_data:getWidth()/2), CENTER_Y - (canvas_data:getHeight()/2))
 		
 		renderimg = love.graphics.newImage(renderdata)
 		recordLoaded = true
@@ -286,7 +261,7 @@ function playRecord()
 			
 			-- these values are reset so the visualiser can hijack them hehe
 			playingRadius = RADIUS_START			
-			playingAngle  = 0 
+			playingAngle  = 0
 			playingSample = 0
 			
 		else
