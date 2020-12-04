@@ -45,19 +45,6 @@ function love.keypressed(key, scancode, isrepeat)
 
 	u:keypressed(key, scancode, isrepeat)
 
-	if key == "u" then
-
-	end	
-	
-	if key == "r" then
-
-
-
-	end
-	
-	if key == "space" and recordLoaded then
-
-	end
 end
 
 function love.update(dt)
@@ -161,11 +148,13 @@ function loadRecord()
 	filename = wav_import.text
 	file = io.open(filename,"rb")
 	
-	if file ~= nil then
+	if file ~= nil and (string.sub(filename, -3) == "wav") then
 		song = file:read("*all")
 		
 		setImageConstants(2048, 2048)
 		renderdata = love.image.newImageData(RENDER_W, RENDER_H)
+		cam_x = CENTER_X
+		cam_y = CENTER_Y
 	
 		SAMPLE_RATE = string.byte(string.sub(song,0x19,0x19)) + (0x100 * string.byte(string.sub(song,0x1a,0x1a)))
 		print("Original Sample Rate: " .. SAMPLE_RATE)
@@ -279,17 +268,25 @@ function playRecord()
 			
 				playheadX = CENTER_X + (playingRadius * math.cos(playingAngle))
 				playheadY = CENTER_Y + (playingRadius * math.sin(playingAngle))
+				
+				if (playheadX >= 0 and playheadY >= 0 and playheadX < RENDER_W and playheadY < RENDER_H ) then
 			
-				r,g,b,a = renderdata:getPixel(playheadX, playheadY)
-				playingVal = (r+g+b)/3
+					r,g,b,a = renderdata:getPixel(playheadX, playheadY)
+					playingVal = (r+g+b)/3
+					
+					if love.math.random() < 0.0001 then
+						playingVal = playingVal + (love.math.random() / 2.5)
+					end
+					
+					playingVal = (playingVal * 2) - 1
+					
+					soundData:setSample(i - 1, playingVal)
+					
+				else
 				
-				if love.math.random() < 0.0001 then
-					playingVal = playingVal + (love.math.random() / 2.5)
+					soundData:setSample(i - 1, 127)
+				
 				end
-				
-				playingVal = (playingVal * 2) - 1
-				
-				soundData:setSample(i - 1, playingVal)
 			
 				playingAngle = playingAngle + (( 2 * math.pi ) / SAMPLES_PER_REVOLUTION)
 				playingRadius = playingRadius - (( RADIUS_START - RADIUS_END ) / SAMPLES_COUNT )
@@ -327,6 +324,8 @@ function loadImage()
 		renderimg = love.graphics.newImage(renderdata)
 		
 		setImageConstants(renderdata:getWidth(), renderdata:getHeight())
+		cam_x = CENTER_X
+		cam_y = CENTER_Y
 		
 		recordLoaded = true
 		file:close()
@@ -344,21 +343,19 @@ function saveImage()
 		file = io.open (filenameout, "wb")
 		file:write(str_out)
 		file:close()
-		
-		--renderdata:encode("png",  )
 	end
 end
 
-function setImageConstants( height, width )
+function setImageConstants( width, height )
 	
-	RENDER_H = 2048	
-	RENDER_W = 2048
+	RENDER_H = height	
+	RENDER_W = width
 
 	CENTER_X = RENDER_W/2
 	CENTER_Y = RENDER_H/2
 	-- in pixels
 	RADIUS_START = ( 1000 ) * ( RENDER_H / 2048 )
 	RADIUS_END   = ( 300  ) * ( RENDER_H / 2048 )
-	STRIP_BREADTH = ( 4 ) *   ( RENDER_H / 2048 )
+	STRIP_BREADTH = ( 3 ) *   ( RENDER_H / 2048 )
 	
 end 
