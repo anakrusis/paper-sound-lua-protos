@@ -5,16 +5,6 @@ require "gui"
 
 -- CONSTANTS
 
-STRIP_BREADTH = 3
-
-RENDER_H = 2048
-RENDER_W = 2048
-
-CENTER_X = RENDER_W/2
-CENTER_Y = RENDER_H/2
--- in pixels
-RADIUS_START = 1000
-RADIUS_END   = 300
 REVOLUTIONS_PER_MINUTE = 190
 
 
@@ -28,7 +18,7 @@ REVOLUTIONS_PER_SAMPLE = REVOLUTIONS_PER_MINUTE / 60 / SAMPLE_RATE
 SAMPLES_PER_REVOLUTION = 1 / REVOLUTIONS_PER_SAMPLE
 
 function love.load()
-	love.window.setTitle( "sound-disc 0.1" )
+	love.window.setTitle( "sound-disc 0.2" )
 	success = love.window.setMode( 800, 600, {resizable=true} )
 	love.keyboard.setKeyRepeat(true)
 	
@@ -41,10 +31,8 @@ function love.load()
 	playingRadius = 0
 	playingAngle  = 0
 	
+	setImageConstants(2048, 2048)
 	initGui()
-	
-	--newpart = 65534
-	--print(((-1 - newpart) % 2^16)+1)
 end
 
 function love.mousepressed(x, y, button) u:pressed(x, y) end
@@ -140,7 +128,7 @@ function getSample(i)
 			if string.byte(string.sub(song,q+i,q+i)) ~= nil then
 				newpart = string.byte(string.sub(song,q+i,q+i))
 			else
-				newpart = 0
+				newpart = 127
 			end
 			sample = sample + newpart
 					
@@ -159,7 +147,7 @@ function getSample(i)
 				
 				newpart = (newpart / 0x100 ) + 128
 			else
-				newpart = 0
+				newpart = 127
 			end
 			sample = sample + newpart
 		end
@@ -175,7 +163,8 @@ function loadRecord()
 	
 	if file ~= nil then
 		song = file:read("*all")
-
+		
+		setImageConstants(2048, 2048)
 		renderdata = love.image.newImageData(RENDER_W, RENDER_H)
 	
 		SAMPLE_RATE = string.byte(string.sub(song,0x19,0x19)) + (0x100 * string.byte(string.sub(song,0x1a,0x1a)))
@@ -337,6 +326,8 @@ function loadImage()
 		renderdata = love.image.newImageData( filedata )
 		renderimg = love.graphics.newImage(renderdata)
 		
+		setImageConstants(renderdata:getWidth(), renderdata:getHeight())
+		
 		recordLoaded = true
 		file:close()
 	end
@@ -357,3 +348,17 @@ function saveImage()
 		--renderdata:encode("png",  )
 	end
 end
+
+function setImageConstants( height, width )
+	
+	RENDER_H = 2048	
+	RENDER_W = 2048
+
+	CENTER_X = RENDER_W/2
+	CENTER_Y = RENDER_H/2
+	-- in pixels
+	RADIUS_START = ( 1000 ) * ( RENDER_H / 2048 )
+	RADIUS_END   = ( 300  ) * ( RENDER_H / 2048 )
+	STRIP_BREADTH = ( 4 ) *   ( RENDER_H / 2048 )
+	
+end 
