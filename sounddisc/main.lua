@@ -67,7 +67,6 @@ function love.update(dt)
 			
 			playingAngle = playingAngle + (( 2 * math.pi ) / SAMPLES_PER_REVOLUTION)
 			playingRadius = playingRadius - (( RADIUS_START - RADIUS_END ) / SAMPLES_COUNT )
-			--playingRadius = playingRadius - (( RADIUS_START - RADIUS_END ) / ( REVOLUTIONS / REVOLUTIONS_PER_SAMPLE ))
 			
 			playingSample = playingSample + 1
 			
@@ -153,6 +152,22 @@ function loadRecord()
 		
 		setImageConstants(2048, 2048)
 		renderdata = love.image.newImageData(RENDER_W, RENDER_H)
+		
+		-- draws a black border around it first for easy printing
+		
+		bordercanvas = love.graphics.newCanvas( renderdata:getWidth(), renderdata:getHeight() );
+		love.graphics.setCanvas(bordercanvas)
+		
+		love.graphics.setColor(0,0,0)
+		love.graphics.setLineWidth( 10 )
+		love.graphics.rectangle("line",0,0,bordercanvas:getWidth(), bordercanvas:getHeight());
+		love.graphics.setColor(1,1,1)
+		
+		love.graphics.setCanvas()
+		
+		bordercanvas_data = bordercanvas:newImageData()
+		renderdata:paste(bordercanvas_data, 0, 0)
+		
 		cam_x = CENTER_X
 		cam_y = CENTER_Y
 	
