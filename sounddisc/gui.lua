@@ -16,15 +16,19 @@ function initGui()
 	
 	import_button = urutora.button({ text = "Import .wav", x = 10, y = 20, w = 125, h = 50 })
 	import_button:action(function(e)
-	
-		loadRecord()
+		
+		if DISCMODE then
+			loadRecord();
+		else
+			loadStrips()
+		end
 		
 	end)
 	u:add(import_button)
 	
 	import_button = urutora.button({ text = "Export .png", x = 10, y = 110, w = 125, h = 50 })
 	import_button:action(function(e)
-	
+		
 		saveImage()
 		
 	end)
@@ -32,8 +36,12 @@ function initGui()
 	
 	play_button = urutora.button({ text = "Play", x = love.graphics.getWidth() / 2, y = 20, w = 50, h = 50 })
 	play_button:action(function(e)
-	
-		playRecord()
+		
+		if DISCMODE then
+			playRecord()
+		else
+			playStrips()
+		end
 		
 	end)
 	u:add(play_button)
