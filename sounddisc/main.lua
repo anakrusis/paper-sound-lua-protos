@@ -95,7 +95,7 @@ function love.update(dt)
 				local col      = math.floor(doneness * columns)
 				playheadX = origin_x + col * column_width;
 				local coldoneness = (doneness * columns) % 1;
-				playheadY = origin_y + coldoneness * render_h
+				playheadY = origin_y + coldoneness * column_height
 				
 				playingSample = playingSample + 1
 				
@@ -114,13 +114,26 @@ function love.keypressed(key,scancode,isrepeat)
 
 	u:keypressed(key, scancode, isrepeat)
 
-	if key == "kp4" then
-		columns = columns - 1
-	elseif key == "kp6" then
-		columns = columns + 1
+	-- column size adjusment
+	if love.keyboard.isDown("kp8") then
+		column_height = column_height - 1
+		if (love.keyboard.isDown("lshift")) then
+			column_height = column_height - 9
+		end
+		
+	elseif love.keyboard.isDown("kp2") then
+		column_height = column_height + 1
+		if (love.keyboard.isDown("lshift")) then
+			column_height = column_height + 9
+		end
+	end
+	if love.keyboard.isDown("kp4") then
+		column_width = column_width - 0.25
+	elseif love.keyboard.isDown("kp6") then
+		column_width = column_width + 0.25
 	end
 	
-		-- origin adjusment
+	-- origin adjusment
 	if love.keyboard.isDown("up") then
 		origin_y = origin_y - 1
 	elseif love.keyboard.isDown("down") then
@@ -130,6 +143,13 @@ function love.keypressed(key,scancode,isrepeat)
 		origin_x = origin_x - 1
 	elseif love.keyboard.isDown("right") then
 		origin_x = origin_x + 1
+	end
+	
+	-- radius for doing the averaging (error correction sort of)
+	if love.keyboard.isDown("kp1") then
+		avgdist = avgdist - 1;
+	elseif love.keyboard.isDown("kp3") then
+		avgdist = avgdist + 1;
 	end
 end
 
@@ -147,7 +167,7 @@ function love.draw()
 		love.graphics.circle("fill", tra_x(playheadX), tra_y(playheadY), cam_zoom * 10)
 	end
 	
-	if not DISCMODE then
+	if not DISCMODE and not playing then
 	
 		love.graphics.setColor(1,0,1,0.5)
 		for i=0,columns-1 do
@@ -280,7 +300,7 @@ function loadStrips()
 		local col      = math.floor(doneness * columns)
 		local cx = origin_x + col * column_width;
 		local coldoneness = (doneness * columns) % 1;
-		local cy = origin_y + coldoneness * render_h
+		local cy = origin_y + coldoneness * column_height
 		
 		--local cy = (i / StepAmt) % render_h
 		-- local cx = math.floor((i / StepAmt) / render_h) * (column_width)
@@ -375,7 +395,7 @@ function playStrips()
 		local col      = math.floor(doneness * columns)
 		playheadX = origin_x + col * column_width;
 		local coldoneness = (doneness * columns) % 1;
-		playheadY = origin_y + coldoneness * render_h
+		playheadY = origin_y + coldoneness * column_height
 		
 		--playheadX = origin_x + (math.floor(i / column_height) * column_width );
 		--playheadY = origin_y + (i % column_height)
