@@ -22,7 +22,7 @@ SAMPLES_PER_REVOLUTION = 1 / REVOLUTIONS_PER_SAMPLE
 
 DISCMODE = false; -- whether to use the disc format (better for sending online) or the sound-strip format (better for printing)
 
-origin_x = 0; origin_y = 0; columns = 50; column_width = 100; column_height = 10000; avgdist = 4;
+origin_x = 30; origin_y = 0; columns = 500; column_width = 60; column_height = 10000; avgdist = 4;
 
 function love.load()
 	love.window.setTitle( "sound-disc 0.2" )
@@ -90,6 +90,7 @@ end
 
 function love.draw()
 
+	love.graphics.setColor(1,1,1,1)
 	if renderimg ~= nil then
 	
 		love.graphics.draw( renderimg, tra_x(0), tra_y(0), 0, cam_zoom, cam_zoom );
@@ -209,15 +210,37 @@ function loadStrips()
 	render_w = (column_width*columns)
 	
 	renderdata = love.image.newImageData(render_w,render_h)
-	for i=0,columns-1 do
-		for j=0,render_h-1 do
-			for k=0,strip_width-1 do
-				--val = string.byte(string.sub(song,(i*render_h)+j+1,(i*render_h)+j+1))
-				val = getSample( (i*render_h)+j+1 );
-				renderdata:setPixel(i*(column_width)+k,j,val/255,val/255,val/255)
+	
+	StepAmt = SAMPLE_DIVISOR * CHANNELS -- the base amount being just the simple divider
+	if BITS_PER_SAMPLE == 16 then
+		StepAmt = StepAmt * 2
+	end
+	
+	-- 0x2C (+1 because lua) is the beginning of audio data in a typical WAV
+	for i = 0x2d, SAMPLES_COUNT * StepAmt, StepAmt do
+	
+		local cy = i % render_h
+		local cx = math.floor(i / render_h) * (column_width)
+		
+		for k=0,strip_width-1 do
+		
+			val = getSample( i );
+			
+			if cx < renderdata:getWidth() and cx >= 0 and cy < renderdata:getHeight() and cy >= 0 then
+				renderdata:setPixel(cx+k,cy,val/255,val/255,val/255)
 			end
 		end
 	end
+	
+	-- for i=0,columns-1 do
+		-- for j=0,render_h-1 do
+			-- for k=0,strip_width-1 do
+				-- --val = string.byte(string.sub(song,(i*render_h)+j+1,(i*render_h)+j+1))
+				-- val = getSample( (i*render_h)+j+1 );
+				-- renderdata:setPixel(i*(column_width)+k,j,val/255,val/255,val/255)
+			-- end
+		-- end
+	-- end
 	renderimg = love.graphics.newImage(renderdata)
 	recordLoaded = true
 	file:close()
@@ -261,7 +284,7 @@ function playStrips()
 	
 	soundData = love.sound.newSoundData( SAMPLES_COUNT, SAMPLE_RATE, BITS_PER_SAMPLE, 1 )
 	
-	origin_x = 0; origin_y = 0;
+	--origin_x = 0; origin_y = 0;
 	
 	for i=0,columns-1 do
 		cur_colm_x = math.floor(i*column_width)+origin_x -- at the top 
