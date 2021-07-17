@@ -22,7 +22,7 @@ SAMPLES_PER_REVOLUTION = 1 / REVOLUTIONS_PER_SAMPLE
 
 DISCMODE = false; -- whether to use the disc format (better for sending online) or the sound-strip format (better for printing)
 
-origin_y = 0; columns = 300; column_width = 10; column_height = 4096; avgdist = 4; margin_ratio = 1/4;
+origin_y = 0; columns = 350; column_width = 9; column_height = 4096; avgdist = 2; margin_ratio = 1/4;
 origin_x = column_width / 2;
 
 function love.load()
@@ -69,23 +69,44 @@ function love.update(dt)
 
 	if playing then
 		
-		for i = 1, SAMPLES_PER_TICK do 
-			playheadX = CENTER_X + (playingRadius * math.cos(playingAngle))
-			playheadY = CENTER_Y + (playingRadius * math.sin(playingAngle))
+		-- playback effect for disc playback
+		if DISCMODE then
+			for i = 1, SAMPLES_PER_TICK do 
+				playheadX = CENTER_X + (playingRadius * math.cos(playingAngle))
+				playheadY = CENTER_Y + (playingRadius * math.sin(playingAngle))
+				
+				playingAngle = playingAngle + (( 2 * math.pi ) / SAMPLES_PER_REVOLUTION)
+				playingRadius = playingRadius - (( RADIUS_START - RADIUS_END ) / SAMPLES_COUNT )
+				
+				playingSample = playingSample + 1
+				
+				if playingSample > SAMPLES_COUNT then
+					playing = false
+					print("Playback stopped")
+					play_button.text = "Play"
+					break
+				end
+			end
+		else
+		-- playback effect for strip playback
 			
-			playingAngle = playingAngle + (( 2 * math.pi ) / SAMPLES_PER_REVOLUTION)
-			playingRadius = playingRadius - (( RADIUS_START - RADIUS_END ) / SAMPLES_COUNT )
-			
-			playingSample = playingSample + 1
-			
-			if playingSample > SAMPLES_COUNT then
-				playing = false
-				print("Playback stopped")
-				play_button.text = "Play"
-				break
+			for i = 1, SAMPLES_PER_TICK do 
+				local doneness = (playingSample -1) / SAMPLES_COUNT
+				local col      = math.floor(doneness * columns)
+				playheadX = origin_x + col * column_width;
+				local coldoneness = (doneness * columns) % 1;
+				playheadY = origin_y + coldoneness * render_h
+				
+				playingSample = playingSample + 1
+				
+				if playingSample > SAMPLES_COUNT then
+					playing = false
+					print("Playback stopped")
+					play_button.text = "Play"
+					break
+				end
 			end
 		end
-		
 	end
 end
 
@@ -97,6 +118,18 @@ function love.keypressed(key,scancode,isrepeat)
 		columns = columns - 1
 	elseif key == "kp6" then
 		columns = columns + 1
+	end
+	
+		-- origin adjusment
+	if love.keyboard.isDown("up") then
+		origin_y = origin_y - 1
+	elseif love.keyboard.isDown("down") then
+		origin_y = origin_y + 1
+	end
+	if love.keyboard.isDown("left") then
+		origin_x = origin_x - 1
+	elseif love.keyboard.isDown("right") then
+		origin_x = origin_x + 1
 	end
 end
 
@@ -118,7 +151,7 @@ function love.draw()
 	
 		love.graphics.setColor(1,0,1,0.5)
 		for i=0,columns-1 do
-			cur_colm_x = (i*column_width)+origin_x
+			cur_colm_x = (i*column_width) + origin_x
 
 			love.graphics.rectangle("fill",tra_x(cur_colm_x-avgdist),tra_y(origin_y),2*avgdist*cam_zoom,column_height*cam_zoom)
 		end
@@ -126,7 +159,7 @@ function love.draw()
 		love.graphics.setColor(1,0,1,1)
 		love.graphics.setLineWidth(1 * cam_zoom)
 		for i=0,columns-1 do
-			cur_colm_x = (i*column_width)+origin_x -- at the top 
+			cur_colm_x = (i*column_width) + origin_x -- at the top 
 
 			love.graphics.line(tra_x(cur_colm_x),tra_y(origin_y),tra_x(cur_colm_x),tra_y(origin_y+column_height))
 		end
@@ -223,11 +256,11 @@ function loadStrips()
 	-- while (column_width*i)/(#song/i) <= 0.77 do
 		-- i = i+1
 	-- end
-	columns = 100
+	--columns = 100
 	--render_h = (#song/columns)
-	render_h = 4096
+	render_h = column_height
 	--render_w = (column_width*columns)
-	render_w = 3165
+	render_w = math.floor(render_h * 0.77);
 	
 	setImageConstants(render_w, render_h)
 	
@@ -328,7 +361,7 @@ function playStrips()
 	playingRadius = RADIUS_START
 	playingAngle  = 0 
 	
-	print(SAMPLE_RATE)
+	print(origin_x)
 	soundData = love.sound.newSoundData( SAMPLES_COUNT, SAMPLE_RATE, BITS_PER_SAMPLE, 1 )
 	
 	--origin_x = 0; origin_y = 0;
