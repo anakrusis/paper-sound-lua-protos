@@ -1,6 +1,13 @@
 -- All the GUI elements are added here! (they were taking up an awful lot of space in main.lua before)
 
 function initGui()
+
+	discmode_toggle = urutora.toggle({ text = "Disc/Strip", DISCMODE, 0, 0, 200, 30 })
+	discmode_toggle:action(function(e)
+		DISCMODE = not DISCMODE
+	end)
+	u:add(discmode_toggle)
+	
 	
 	samplerate_label = urutora.label({ text = "(If it sounds broken or skippy\nthen try other sample rate)", x = 175, y = 50, w = 100, h = 50})
 	u:add(samplerate_label)

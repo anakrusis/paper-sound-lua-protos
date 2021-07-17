@@ -22,7 +22,8 @@ SAMPLES_PER_REVOLUTION = 1 / REVOLUTIONS_PER_SAMPLE
 
 DISCMODE = false; -- whether to use the disc format (better for sending online) or the sound-strip format (better for printing)
 
-origin_x = 30; origin_y = 0; columns = 500; column_width = 60; column_height = 10000; avgdist = 4;
+origin_y = 0; columns = 300; column_width = 10; column_height = 4096; avgdist = 4; margin_ratio = 1/4;
+origin_x = column_width / 2;
 
 function love.load()
 	love.window.setTitle( "sound-disc 0.2" )
@@ -88,6 +89,17 @@ function love.update(dt)
 	end
 end
 
+function love.keypressed(key,scancode,isrepeat)
+
+	u:keypressed(key, scancode, isrepeat)
+
+	if key == "kp4" then
+		columns = columns - 1
+	elseif key == "kp6" then
+		columns = columns + 1
+	end
+end
+
 function love.draw()
 
 	love.graphics.setColor(1,1,1,1)
@@ -112,7 +124,7 @@ function love.draw()
 		end
 		
 		love.graphics.setColor(1,0,1,1)
-		love.graphics.setLineWidth(5)
+		love.graphics.setLineWidth(1 * cam_zoom)
 		for i=0,columns-1 do
 			cur_colm_x = (i*column_width)+origin_x -- at the top 
 
@@ -191,23 +203,32 @@ function loadStrips()
 	SAMPLE_RATE = SAMPLE_RATE / SAMPLE_DIVISOR
 	print("Sample Rate / " .. SAMPLE_DIVISOR .. " = " .. SAMPLE_RATE)
 	
+	SAMPLES_COUNT = SAMPLE_RATE * 60
+	SAMPLES_PER_TICK = math.floor(SAMPLE_RATE / 60)
+	
 	LENGTH_IN_SECONDS = 60
 	SAMPLES_COUNT = ( SAMPLE_RATE ) * LENGTH_IN_SECONDS
+	
+	SAMPLE_RATE = SAMPLE_RATE * SAMPLE_DIVISOR
 	
 	CHANNELS = string.byte(string.sub(song,23,23)) + (0x100 * string.byte(string.sub(song,24,24)))
 	if (CHANNELS == 1) then print("Mono") elseif (CHANNELS == 2) then print ("Stereo") end
 
-	strip_width = 50
-	margin_width = 10
+	strip_width = column_width - (margin_ratio * column_width)
+	margin_width = margin_ratio * column_width
 	
 	column_width = strip_width + margin_width
-	i = 1
-	while (column_width*i)/(#song/i) <= 0.77 do
-		i = i+1
-	end
-	columns = i
-	render_h = (#song/columns)
-	render_w = (column_width*columns)
+	
+	-- i = 1
+	-- while (column_width*i)/(#song/i) <= 0.77 do
+		-- i = i+1
+	-- end
+	columns = 100
+	--render_h = (#song/columns)
+	render_h = 4096
+	--render_w = (column_width*columns)
+	render_w = 3165
+	
 	setImageConstants(render_w, render_h)
 	
 	renderdata = love.image.newImageData(render_w,render_h)
@@ -217,20 +238,33 @@ function loadStrips()
 		StepAmt = StepAmt * 2
 	end
 	
+	local cx = 0; local cy = 0;
+	
 	-- 0x2C (+1 because lua) is the beginning of audio data in a typical WAV
 	for i = 0x2d, SAMPLES_COUNT * StepAmt, StepAmt do
 	
-		local cy = i % render_h
-		local cx = math.floor(i / render_h) * (column_width)
+		local doneness = ((i/StepAmt)-0x2d) / SAMPLES_COUNT
+		local col      = math.floor(doneness * columns)
+		local cx = origin_x + col * column_width;
+		local coldoneness = (doneness * columns) % 1;
+		local cy = origin_y + coldoneness * render_h
+		
+		--local cy = (i / StepAmt) % render_h
+		-- local cx = math.floor((i / StepAmt) / render_h) * (column_width)
 		
 		for k=0,strip_width-1 do
 		
 			val = getSample( i );
 			
-			if cx < renderdata:getWidth() and cx >= 0 and cy < renderdata:getHeight() and cy >= 0 then
+			if cx+k < renderdata:getWidth() and cx+k >= 0 and cy < renderdata:getHeight() and cy >= 0 then
 				renderdata:setPixel(cx+k,cy,val/255,val/255,val/255)
 			end
 		end
+		
+		-- cy = cy + 1;
+		-- if (cy >= render_h) then
+			-- cy = 0; cx = cx + column_width
+		-- end
 	end
 	
 	-- for i=0,columns-1 do
@@ -294,6 +328,7 @@ function playStrips()
 	playingRadius = RADIUS_START
 	playingAngle  = 0 
 	
+	print(SAMPLE_RATE)
 	soundData = love.sound.newSoundData( SAMPLES_COUNT, SAMPLE_RATE, BITS_PER_SAMPLE, 1 )
 	
 	--origin_x = 0; origin_y = 0;
@@ -303,8 +338,14 @@ function playStrips()
 		--local cx = math.floor(i / render_h) * (column_width)
 		--local cy = i % render_h
 		
-		playheadX = origin_x + (math.floor(i / column_height) * column_width );
-		playheadY = origin_y + (i % column_height)
+		local doneness = (i-1) / SAMPLES_COUNT
+		local col      = math.floor(doneness * columns)
+		playheadX = origin_x + col * column_width;
+		local coldoneness = (doneness * columns) % 1;
+		playheadY = origin_y + coldoneness * render_h
+		
+		--playheadX = origin_x + (math.floor(i / column_height) * column_width );
+		--playheadY = origin_y + (i % column_height)
 		
 		if (playheadX >= 0 and playheadY >= 0 and playheadX < RENDER_W and playheadY < RENDER_H ) then
 			
