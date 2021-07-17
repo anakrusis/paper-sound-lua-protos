@@ -208,6 +208,7 @@ function loadStrips()
 	columns = i
 	render_h = (#song/columns)
 	render_w = (column_width*columns)
+	setImageConstants(render_w, render_h)
 	
 	renderdata = love.image.newImageData(render_w,render_h)
 	
@@ -248,6 +249,16 @@ end
 
 function playStrips()
 
+	if not recordLoaded then return end
+	playing = not playing
+	if not playing then
+	
+		print("Playback stopped")
+		love.audio.stop( source )
+		play_button.text = "Play"
+		return
+	end
+
 	-- wChannels = 1 -- mono
 	-- dwSamplesPerSec = math.floor((columns*column_height)/songlength) -- samplerate in Hz
 	-- dwBitsPerSample = 8
@@ -277,6 +288,7 @@ function playStrips()
 	-- width_ratio = (columns*column_width)/(columns*column_w_bottom)
 	-- top/bottom ratio
 	
+	play_button.text = "Stop"
 	print("Now playing...")
 	playingSample = 0
 	playingRadius = RADIUS_START
@@ -286,22 +298,42 @@ function playStrips()
 	
 	--origin_x = 0; origin_y = 0;
 	
-	for i=0,columns-1 do
-		cur_colm_x = math.floor(i*column_width)+origin_x -- at the top 
+	for i=1, SAMPLES_COUNT do
+	
+		--local cx = math.floor(i / render_h) * (column_width)
+		--local cy = i % render_h
 		
-		for j=0,column_height-1 do
+		playheadX = origin_x + (math.floor(i / column_height) * column_width );
+		playheadY = origin_y + (i % column_height)
 		
-			playingVal = horiz_avg_read(cur_colm_x,origin_y+j,avgdist) / 255;
+		if (playheadX >= 0 and playheadY >= 0 and playheadX < RENDER_W and playheadY < RENDER_H ) then
 			
+			playingVal = horiz_avg_read(playheadX,playheadY,avgdist) / 255;
 			playingVal = (playingVal * 2) - 1
-			
-			soundData:setSample(i * columns + j, playingVal)
-			
-			playingSample = playingSample + 1
+			soundData:setSample(i - 1, playingVal)
+		else	
 		
 		end
 		
+		playingSample = playingSample + 1
 	end
+	
+	-- for i=0,columns-1 do
+		-- cur_colm_x = math.floor(i*column_width)+origin_x -- at the top 
+		
+		-- for j=0,column_height-1 do
+		
+			-- playingVal = horiz_avg_read(cur_colm_x,origin_y+j,avgdist) / 255;
+			
+			-- playingVal = (playingVal * 2) - 1
+			
+			-- soundData:setSample(i * columns + j, playingVal)
+			
+			-- playingSample = playingSample + 1
+		
+		-- end
+		
+	-- end
 	
 	source = love.audio.newSource(soundData, "static")
 	love.audio.play( source )
