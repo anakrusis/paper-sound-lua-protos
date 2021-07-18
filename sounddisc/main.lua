@@ -61,6 +61,7 @@ function love.update(dt)
 	play_button.x = -(play_button.w/2) + love.graphics.getWidth() / 2
 	samplerate_button.x = love.graphics.getWidth() - 170
 	samplerate_label.x  = love.graphics.getWidth() - 170
+	discmode_toggle.x  = love.graphics.getWidth() - 250
 	
 	-- Buttons whose text dynamically updates
 	samplerate_button.text = "Sample rate: " .. (SAMPLE_RATE/1000) .. "khz"
@@ -128,9 +129,15 @@ function love.keypressed(key,scancode,isrepeat)
 		end
 	end
 	if love.keyboard.isDown("kp4") then
-		column_width = column_width - 0.25
+		column_width = column_width - 0.01
+		if (love.keyboard.isDown("lshift")) then
+			column_width = column_width - 0.24
+		end
 	elseif love.keyboard.isDown("kp6") then
-		column_width = column_width + 0.25
+		column_width = column_width + 0.01
+		if (love.keyboard.isDown("lshift")) then
+			column_width = column_width + 0.24
+		end
 	end
 	
 	-- origin adjusment
@@ -272,12 +279,6 @@ function loadStrips()
 	
 	column_width = strip_width + margin_width
 	
-	-- i = 1
-	-- while (column_width*i)/(#song/i) <= 0.77 do
-		-- i = i+1
-	-- end
-	--columns = 100
-	--render_h = (#song/columns)
 	render_h = column_height
 	--render_w = (column_width*columns)
 	render_w = math.floor(render_h * 0.77);

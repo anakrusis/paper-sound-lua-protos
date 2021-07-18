@@ -2,9 +2,15 @@
 
 function initGui()
 
-	discmode_toggle = urutora.toggle({ text = "Disc/Strip", DISCMODE, 0, 0, 200, 30 })
+	discmode_toggle = urutora.button({ text = "Strip Mode", 0, y = 20, w = 75, h = 30 })
 	discmode_toggle:action(function(e)
 		DISCMODE = not DISCMODE
+		
+		if DISCMODE then
+			e.target.text = "Disc Mode";
+		else
+			e.target.text = "Strip Mode";
+		end
 	end)
 	u:add(discmode_toggle)
 	
