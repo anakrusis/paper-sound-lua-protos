@@ -21,6 +21,7 @@ REVOLUTIONS_PER_SAMPLE = REVOLUTIONS_PER_MINUTE / 60 / SAMPLE_RATE
 SAMPLES_PER_REVOLUTION = 1 / REVOLUTIONS_PER_SAMPLE
 
 DISCMODE = false; -- whether to use the disc format (better for sending online) or the sound-strip format (better for printing)
+VARIABLE_WIDTH = true;
 
 origin_x = 0; origin_y = 0; columns = 175; column_width = 36; column_height = 8192; avgdist = 2; margin_ratio = 1/4;
 --origin_x = column_width / 2;
@@ -175,6 +176,7 @@ end
 function love.draw()
 
 	love.graphics.setColor(1,1,1,1)
+	love.graphics.rectangle("fill",0,0,love.graphics.getWidth(),love.graphics.getHeight());
 	if renderimg ~= nil then
 	
 		love.graphics.draw( renderimg, tra_x(0), tra_y(0), 0, cam_zoom, cam_zoom );
@@ -315,15 +317,25 @@ function loadStrips()
 		local coldoneness = (doneness * columns) % 1;
 		local cy = origin_y + coldoneness * column_height
 		
-		--local cy = (i / StepAmt) % render_h
-		-- local cx = math.floor((i / StepAmt) / render_h) * (column_width)
+		val = getSample( i );
 		
-		for k=0,strip_width-1 do
-		
-			val = getSample( i );
+		-- Variable area (new)
+		if VARIABLE_WIDTH then
 			
-			if cx+k < renderdata:getWidth() and cx+k >= 0 and cy < renderdata:getHeight() and cy >= 0 then
-				renderdata:setPixel(cx+k,cy,val/255,val/255,val/255)
+			local cwidth = ( val / 255 ) * strip_width
+			for k=0,cwidth-1 do
+				if cx+k < renderdata:getWidth() and cx+k >= 0 and cy < renderdata:getHeight() and cy >= 0 then
+					renderdata:setPixel(cx+k,cy,0,0,0)
+				end
+			end
+			
+			
+		-- Variable density (old)
+		else 
+			for k=0,strip_width-1 do
+				if cx+k < renderdata:getWidth() and cx+k >= 0 and cy < renderdata:getHeight() and cy >= 0 then
+					renderdata:setPixel(cx+k,cy,val/255,val/255,val/255)
+				end
 			end
 		end
 		

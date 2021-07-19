@@ -74,7 +74,7 @@ end
 
 utils.colors = {
 	BLACK = utils.toRGB('#000000'),
-	WHITE = utils.toRGB('#ffffff'),
+	WHITE = utils.toRGB('#000000'),
 	GRAY = utils.toRGB('#666666'),
 	DARK_GRAY = utils.toRGB('#333333'),
 	LOVE_BLUE = utils.toRGB('#599ddc'),
