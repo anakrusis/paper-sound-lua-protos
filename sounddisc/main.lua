@@ -22,8 +22,8 @@ SAMPLES_PER_REVOLUTION = 1 / REVOLUTIONS_PER_SAMPLE
 
 DISCMODE = false; -- whether to use the disc format (better for sending online) or the sound-strip format (better for printing)
 
-origin_y = 0; columns = 350; column_width = 9; column_height = 4096; avgdist = 2; margin_ratio = 1/4;
-origin_x = column_width / 2;
+origin_x = 0; origin_y = 0; columns = 175; column_width = 36; column_height = 8192; avgdist = 2; margin_ratio = 1/4;
+--origin_x = column_width / 2;
 
 function love.load()
 	love.window.setTitle( "sound-disc 0.2" )
@@ -143,13 +143,25 @@ function love.keypressed(key,scancode,isrepeat)
 	-- origin adjusment
 	if love.keyboard.isDown("up") then
 		origin_y = origin_y - 1
+		if (love.keyboard.isDown("lshift")) then
+			origin_y = origin_y - 9
+		end
 	elseif love.keyboard.isDown("down") then
 		origin_y = origin_y + 1
+		if (love.keyboard.isDown("lshift")) then
+			origin_y = origin_y + 9
+		end
 	end
 	if love.keyboard.isDown("left") then
 		origin_x = origin_x - 1
+		if (love.keyboard.isDown("lshift")) then
+			origin_x = origin_x - 9
+		end
 	elseif love.keyboard.isDown("right") then
 		origin_x = origin_x + 1
+		if (love.keyboard.isDown("lshift")) then
+			origin_x = origin_x + 9
+		end
 	end
 	
 	-- radius for doing the averaging (error correction sort of)
@@ -333,6 +345,8 @@ function loadStrips()
 	renderimg = love.graphics.newImage(renderdata)
 	recordLoaded = true
 	file:close()
+	
+	origin_x = column_width / 2;
 end
 
 function playStrips()
